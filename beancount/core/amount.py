@@ -148,23 +148,12 @@ class Amount(NamedTuple("Amount", [("number", Optional[Decimal]), ("currency", s
         number, currency = match.group(1, 2)
         return Amount(D(number), currency)
 
-class TotalAmount(Amount):
-    total: Amount
+class TotalAmount(NamedTuple("TotalAmount", [("number", Optional[Decimal]), ("currency", str), ("total", Amount)]), Amount):
+    @staticmethod
+    def from_units_and_total(units: Decimal, total: Amount) -> TotalAmount:
+        share_price = ZERO if units == ZERO else div(total, units).number
+        return TotalAmount(share_price, total.currency, total)
 
-    def __new__(cls, units: Amount, total_price: Amount):
-        assert isinstance(units.number, Decimal), (
-            "units amount's number is not a Decimal instance: {}".format(units.number)
-        )
-
-        assert isinstance(total_price.number, Decimal), (
-            "total_price amount's number is not a Decimal instance: {}".format(total_price.number)
-        )
-
-        share_price = ZERO if units.number == ZERO else total_price.number / builtins.abs(units.number)
-        return super().__new__(cls, share_price, total_price.currency)
-
-    def __init__(self, units: Amount, total_price: Amount):
-        self.total = total_price
 
 # Note: We don't implement operators on Amount here in favour of the more
 # explicit functional style. This should all be LISP anyhow. I like dumb data
